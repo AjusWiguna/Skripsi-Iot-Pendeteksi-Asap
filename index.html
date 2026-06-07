@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KINONE Smoke Detector - Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<div id="login-screen" class="screen active">
+    <div class="login-card">
+        <img src="smp1.jpg " alt="Logo KINONE" class="login-logo" onerror="this.style.display='none';">
+        
+        <h2 class="login-title">KINONE SMOKE DETECTOR</h2>
+        <p class="login-sub">Sistem Pendeteksi Asap IoT SMPN 1 Kintamani</p>
+        
+        <form id="login-form">
+            <div class="input-group">
+                <label>Email Admin</label>
+                <input type="email" id="login-email" placeholder="contoh: admin@sekolah.com" required>
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="login-password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-login" id="btn-login-submit">Masuk Sistem</button>
+            <div id="login-error" class="error-msg">Email atau password salah!</div>
+            <p class="toggle-text">Belum punya akun? <span id="show-register">Daftar di sini</span></p>
+        </form>
+
+        <form id="register-form" style="display: none;">
+            <div class="input-group">
+                <label>Buat Email Baru</label>
+                <input type="email" id="register-email" placeholder="contoh: guru@sekolah.com" required>
+            </div>
+            <div class="input-group">
+                <label>Buat Password (Min. 6 Karakter)</label>
+                <input type="password" id="register-password" placeholder="••••••••" required minlength="6">
+            </div>
+            <button type="submit" class="btn-login" id="btn-register-submit" style="background: var(--safe); color: white;">Daftar Akun</button>
+            <div id="register-error" class="error-msg">Gagal mendaftar!</div>
+            <p class="toggle-text">Sudah punya akun? <span id="show-login">Kembali ke Login</span></p>
+        </form>
+    </div>
+</div>
+
+<div id="dashboard-screen" class="screen">
+    <div class="dashboard">
+
+        <div class="header">
+            <div class="header-left">
+                <div class="header-icon">🔥</div>
+                <div>
+                    <div class="header-title">KINONE Smoke Detector</div>
+                    <div class="header-sub">ESP32 · Firebase Realtime Database</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="clock" id="jam-sekarang">--:--:--</div>
+                <button class="btn-logout" id="btn-logout">Logout</button>
+            </div>
+        </div>
+
+        <div id="alarm-strip">🚨 ALARM AKTIF — Relay & Buzzer Menyala!</div>
+
+        <div id="status-banner" class="waiting">
+            <div class="banner-icon-wrap"><span id="status-icon">⏳</span></div>
+            <div>
+                <div class="banner-label" id="banner-label">Menghubungkan</div>
+                <div class="banner-msg" id="status-text">Menunggu data dari ESP32 via Firebase...</div>
+            </div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-label">Suhu Ruangan</div>
+                    <div class="card-icon icon-temp">🌡️</div>
+                </div>
+                <div class="card-value" id="val-suhu">--<span class="card-unit">°C</span></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-label">Kelembaban</div>
+                    <div class="card-icon icon-hum">💧</div>
+                </div>
+                <div class="card-value" id="val-hum">--<span class="card-unit">%</span></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-label">Asap Pusat (MQ-2)</div>
+                    <div class="card-icon icon-smoke">💨</div>
+                </div>
+                <div class="card-value" id="val-asap1">--<span class="card-unit"></span></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-label">Deteksi Api</div>
+                    <div class="card-icon icon-fire" id="icon-api">🟢</div>
+                </div>
+                <div class="card-value safe-text" id="val-api">AMAN</div>
+            </div>
+        </div>
+
+        <div class="pojok-wrapper">
+            <div class="pojok-title">🎯 Pantauan Area Sudut Ruangan (Sensor MQ-2)</div>
+            <div class="pojok-grid">
+                <div class="pojok-item" id="pojok1-card">
+                    <div class="pojok-name">Pojok (1)</div>
+                    <div class="pojok-val" id="val-pojok1">--</div>
+                </div>
+                <div class="pojok-item" id="pojok2-card">
+                    <div class="pojok-name">Pojok (2)</div>
+                    <div class="pojok-val" id="val-pojok2">--</div>
+                </div>
+                <div class="pojok-item" id="pojok3-card">
+                    <div class="pojok-name">Pojok (3)</div>
+                    <div class="pojok-val" id="val-pojok3">--</div>
+                </div>
+                <div class="pojok-item" id="pojok4-card">
+                    <div class="pojok-name">Pojok (4)</div>
+                    <div class="pojok-val" id="val-pojok4">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-label">Tingkat Bahaya</div>
+            <div class="filter-track">
+                <div class="filter-fill" id="filter-fill" style="width:0%"></div>
+            </div>
+            <div class="filter-count" id="filter-count">0 / 6</div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title">📊 Grafik Pemantauan Real-time (Semua Sensor)</div>
+            <div class="chart-wrap">
+                <canvas id="realtimeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title">📋 Riwayat Aktivitas & Peringatan</div>
+            <div class="alert-list" id="alert-list">
+                <div class="empty-log">⏳ Belum ada riwayat aktivitas yang tercatat.</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
