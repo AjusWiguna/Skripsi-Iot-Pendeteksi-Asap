@@ -251,6 +251,37 @@ function startSensorListener() {
             addAlert('💨 PERINGATAN: Asap terdeteksi di area: ' + area.join(', '), 'warning');
         }
 
+        // --- TAMBAHAN POP-UP NOTIFIKASI API ---
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("🔥 BAHAYA API TERDETEKSI!", {
+                    body: "Sensor mendeteksi keberadaan api di ruangan. Segera periksa!",
+                    icon: "https://cdn-icons-png.flaticon.com/512/785/785116.png",
+                    requireInteraction: true // Notif tidak akan hilang sampai di-klik/tutup user
+                });
+            }
+        }
+        
+        if (cekAsapAda && !prevAsapLog) {
+            let area = [];
+            if (asapPusat >= THRESHOLD_ASAP) area.push('Pusat');
+            if (p1 >= THRESHOLD_ASAP) area.push('Kiri Depan');
+            if (p2 >= THRESHOLD_ASAP) area.push('Kanan Depan');
+            if (p3 >= THRESHOLD_ASAP) area.push('Kiri Belakang');
+            if (p4 >= THRESHOLD_ASAP) area.push('Kanan Belakang');
+            
+            const teksArea = area.join(', ');
+            addAlert('💨 PERINGATAN: Asap terdeteksi di area: ' + teksArea, 'warning');
+            
+            // --- TAMBAHAN POP-UP NOTIFIKASI ASAP ---
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("💨 PERINGATAN ASAP!", {
+                    body: "Asap melebihi ambang batas di area: " + teksArea,
+                    icon: "https://cdn-icons-png.flaticon.com/512/10040/10040183.png",
+                    requireInteraction: true
+                });
+            }
+        }
+
         // Catat status agar tidak nyepam log
         prevApiLog = apiDet;
         prevAsapLog = cekAsapAda;
