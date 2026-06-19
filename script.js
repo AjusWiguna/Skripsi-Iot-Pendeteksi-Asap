@@ -26,6 +26,55 @@ if ("Notification" in window) {
     }
 }
 
+// ── SETUP UI POP-UP DINAMIS (BARU) ────────────────────
+const popupOverlay = document.createElement('div');
+popupOverlay.id = 'custom-popup-overlay';
+popupOverlay.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); display: none; justify-content: center;
+    align-items: center; z-index: 9999; backdrop-filter: blur(3px);
+`;
+
+const popupBox = document.createElement('div');
+popupBox.style.cssText = `
+    background: white; padding: 25px; border-radius: 12px;
+    text-align: center; max-width: 400px; width: 90%;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-family: sans-serif;
+`;
+
+const popupTitle = document.createElement('h2');
+popupTitle.id = 'custom-popup-title';
+popupTitle.style.cssText = 'margin-top: 0; font-size: 22px; font-weight: bold;';
+
+const popupMessage = document.createElement('p');
+popupMessage.id = 'custom-popup-message';
+popupMessage.style.cssText = 'font-size: 16px; margin-bottom: 25px; color: #374151; line-height: 1.5;';
+
+const closeBtn = document.createElement('button');
+closeBtn.innerText = 'Tutup Peringatan';
+closeBtn.style.cssText = `
+    background: #ef4444; color: white; border: none; padding: 12px 24px;
+    border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold;
+    transition: background 0.2s;
+`;
+closeBtn.onmouseover = () => closeBtn.style.background = '#dc2626';
+closeBtn.onmouseout = () => closeBtn.style.background = '#ef4444';
+closeBtn.onclick = () => { popupOverlay.style.display = 'none'; };
+
+popupBox.appendChild(popupTitle);
+popupBox.appendChild(popupMessage);
+popupBox.appendChild(closeBtn);
+popupOverlay.appendChild(popupBox);
+document.body.appendChild(popupOverlay);
+
+// Fungsi untuk menampilkan Pop-up
+function showPopup(title, message, isDanger) {
+    popupTitle.innerText = title;
+    popupTitle.style.color = isDanger ? '#ef4444' : '#f97316'; // Merah untuk Api, Oranye untuk Asap
+    popupMessage.innerHTML = message;
+    popupOverlay.style.display = 'flex';
+}
+
 // ── LOGIKA LOGIN, REGISTER & LOGOUT ─────────────────────────────
 const loginScreen = document.getElementById('login-screen');
 const dashScreen = document.getElementById('dashboard-screen');
@@ -106,7 +155,6 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 });
 
 // ── PENGATURAN THRESHOLD SISTEM ───────────────────────
-// UBAH ANGKA 400 DI BAWAH INI SESUAI DENGAN ANGKA THRESHOLD DI ARDUINO-MU
 const THRESHOLD_ASAP = 500; 
 const THRESHOLD_SUHU = 45.0;
 const BATAS_TRIGGER  = 1;
@@ -235,12 +283,24 @@ function startSensorListener() {
 
         document.getElementById('alarm-strip').className = alarmAktif ? 'active' : '';
 
-        // ── LOGIKA RIWAYAT KHUSUS ASAP & API (BARU) ──
+        // ── LOGIKA RIWAYAT & POP-UP KHUSUS ASAP & API (BARU) ──
         const cekAsapAda = (asapPusat >= THRESHOLD_ASAP || p1 >= THRESHOLD_ASAP || p2 >= THRESHOLD_ASAP || p3 >= THRESHOLD_ASAP || p4 >= THRESHOLD_ASAP);
         
+        let popupTitleText = "";
+        let popupMsgText = "";
+        let isDangerLevel = false;
+        let shouldShowPopup = false;
+
+        // Cek Api
         if (apiDet && !prevApiLog) {
             addAlert('🔥 PERINGATAN: Sensor mendeteksi keberadaan API!', 'danger');
+            popupTitleText = '🔥 BAHAYA API TERDETEKSI!';
+            popupMsgText += 'Sensor mendeteksi keberadaan <b>API</b> di lokasi saat ini!<br><br>';
+            isDangerLevel = true;
+            shouldShowPopup = true;
         }
+
+        // Cek Asap
         if (cekAsapAda && !prevAsapLog) {
             let area = [];
             if (asapPusat >= THRESHOLD_ASAP) area.push('Pusat');
@@ -248,41 +308,22 @@ function startSensorListener() {
             if (p2 >= THRESHOLD_ASAP) area.push('Kanan Depan');
             if (p3 >= THRESHOLD_ASAP) area.push('Kiri Belakang');
             if (p4 >= THRESHOLD_ASAP) area.push('Kanan Belakang');
+            
             addAlert('💨 PERINGATAN: Asap terdeteksi di area: ' + area.join(', '), 'warning');
+            
+            if (!isDangerLevel) {
+                popupTitleText = '💨 PERINGATAN ASAP!';
+            }
+            popupMsgText += 'Kadar asap tinggi terdeteksi di area:<br><b>' + area.join(', ') + '</b>';
+            shouldShowPopup = true;
         }
 
-        // --- TAMBAHAN POP-UP NOTIFIKASI API ---
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification("🔥 BAHAYA API TERDETEKSI!", {
-                    body: "Sensor mendeteksi keberadaan api di ruangan. Segera periksa!",
-                    icon: "https://cdn-icons-png.flaticon.com/512/785/785116.png",
-                    requireInteraction: true // Notif tidak akan hilang sampai di-klik/tutup user
-                });
-            }
-        }
-        
-        if (cekAsapAda && !prevAsapLog) {
-            let area = [];
-            if (asapPusat >= THRESHOLD_ASAP) area.push('Pusat');
-            if (p1 >= THRESHOLD_ASAP) area.push('Kiri Depan');
-            if (p2 >= THRESHOLD_ASAP) area.push('Kanan Depan');
-            if (p3 >= THRESHOLD_ASAP) area.push('Kiri Belakang');
-            if (p4 >= THRESHOLD_ASAP) area.push('Kanan Belakang');
-            
-            const teksArea = area.join(', ');
-            addAlert('💨 PERINGATAN: Asap terdeteksi di area: ' + teksArea, 'warning');
-            
-            // --- TAMBAHAN POP-UP NOTIFIKASI ASAP ---
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification("💨 PERINGATAN ASAP!", {
-                    body: "Asap melebihi ambang batas di area: " + teksArea,
-                    icon: "https://cdn-icons-png.flaticon.com/512/10040/10040183.png",
-                    requireInteraction: true
-                });
-            }
+        // Tampilkan pop-up jika ada trigger
+        if (shouldShowPopup) {
+            showPopup(popupTitleText, popupMsgText, isDangerLevel);
         }
 
-        // Catat status agar tidak nyepam log
+        // Catat status agar tidak nyepam log & pop-up berulang kali
         prevApiLog = apiDet;
         prevAsapLog = cekAsapAda;
 
